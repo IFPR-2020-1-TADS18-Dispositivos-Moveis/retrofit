@@ -14,7 +14,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        adapter = PersonAdapter(applicationContext)
+        adapter = PersonAdapter()
         listPeople.adapter = adapter
         listPeople.layoutManager = LinearLayoutManager(
                 this, LinearLayoutManager.VERTICAL, false

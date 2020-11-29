@@ -6,43 +6,24 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import androidx.room.Room
 import com.stiehl.peopleapp.R
-import com.stiehl.peopleapp.database.AppDatabase
-import com.stiehl.peopleapp.database.daos.PersonDAO
+import com.stiehl.peopleapp.dao.PersonDAO
 import com.stiehl.peopleapp.models.Person
 import kotlinx.android.synthetic.main.item_person.view.*
 import kotlinx.android.synthetic.main.item_person_disabled.view.*
 import kotlinx.android.synthetic.main.item_person_editing.view.*
 
-class PersonAdapter(context: Context) : RecyclerView.Adapter<PersonAdapter.ViewHolder>() {
-    private val dao: PersonDAO
-    private val people: MutableList<Person>
+class PersonAdapter() : RecyclerView.Adapter<PersonAdapter.ViewHolder>() {
+    private val dao = PersonDAO()
+    private var people = mutableListOf<Person>()
     private var personEditing: Person? = null
 
     init {
-        // Create DB instance
-        val db = Room.databaseBuilder(
-            context,
-            AppDatabase::class.java,
-            "person-db"
-        )
-            .allowMainThreadQueries()
-            .build()
-
-        // Get DAO
-        dao = db.personDAO()
-
-        // Get all the people
-        people = dao.getAll().toMutableList()
+        dao.getAll { peopleAPI ->
+            people = peopleAPI.toMutableList()
+            notifyDataSetChanged()
+        }
     }
-
-//    fun add(person: Person) {
-//        person.id = dao.insert(person)
-//
-//        people.add(person)
-//        notifyItemInserted(people.size - 1)
-//    }
 
     fun add() {
         val person = Person("", "", "")
@@ -58,10 +39,10 @@ class PersonAdapter(context: Context) : RecyclerView.Adapter<PersonAdapter.ViewH
     }
 
     fun save(person: Person) {
-        if (person.id == null) {
-            dao.insert(person)
-        } else {
-            dao.update(person)
+        dao.save(person) { personAPI ->
+            if (person.id == null) {
+                person.id = personAPI.id
+            }
         }
         val position = people.indexOf(person)
         personEditing = null
@@ -124,7 +105,7 @@ class PersonAdapter(context: Context) : RecyclerView.Adapter<PersonAdapter.ViewH
 
             itemView.setOnClickListener {
                 person.enabled = !person.enabled
-                dao.update(person)
+                dao.save(person) { }
                 val position = people.indexOf(person)
                 notifyItemChanged(position)
             }
@@ -132,7 +113,7 @@ class PersonAdapter(context: Context) : RecyclerView.Adapter<PersonAdapter.ViewH
             itemView.setOnLongClickListener {
                 val position = people.indexOf(person)
                 people.removeAt(position)
-                dao.delete(person)
+                dao.delete(person) { }
                 notifyItemRemoved(position)
                 true
             }
